@@ -76,16 +76,16 @@ app.post("/fashioncamp/sign-in", async (req, res) => {
         );
         const user = result.rows[0];
         if (user && bcrypt.compareSync(password, user.password)) {
-            const sessionId = await connection.query(
-                `INSERT INTO sessions ("userId")
-                VALUES ($1) RETURNING id`,
-                [user.id]
-            );
-
-            const data = { sessionId };
+            const data = { user: user.id };
             const secretKey = process.env.JWT_SCRET;
             const configs = { expiresIn: 60 * 60 * 24 * 30 };
             const token = jwt.sign(data, secretKey, configs);
+
+            await connection.query(
+                `INSERT INTO sessions ("userId", token)
+                VALUES ($1, $2)`,
+                [user.id, token]
+            );
 
             res.status(200).send({ name: user.name, token });
         } else {
@@ -124,5 +124,12 @@ app.post("/product/add/:id", async (req, res) => {
         res.sendStatus(400);
     }
 });
+
+/* Cart Routes */
+app.get("/fashioncamp/cart", async (req, res) => {});
+
+app.put("/fashioncamp/cart/alter-product-quantity", async (req, res) => {});
+
+app.delete("/fashioncamp/cart/remove-product", async (req, res) => {});
 
 export default app;
