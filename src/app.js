@@ -99,7 +99,7 @@ app.post("/fashioncamp/sign-in", async (req, res) => {
     }
 });
 
-/* Show Products Route */
+/* Show Products */
 app.get("/products", async (req, res) => {
     try{
         const result = await connection.query(`SELECT * FROM products`);
@@ -112,10 +112,13 @@ app.get("/products", async (req, res) => {
 
 /* Add product to Cart */
 app.post("/product/add/:id", async (req, res) => {
+    const authorization = req.headers['authorization'];
+    const secretKey = process.env.JWT_SECRET;
+    const {id} = req.params;
     try{
-        const {id} = req.params;
-        console.log(id);
-        const result = await connection.query(`SELECT * FROM products WHERE id = $1`,[id]);
+        const data = jwt.verify(authorization, secretKey);    
+        console.log(data);
+        const result = await connection.query(`SELECT`,[]);
     }catch(err){
         console.log(err);
         res.sendStatus(400);
