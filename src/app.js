@@ -101,4 +101,11 @@ app.post("/fashioncamp/sign-in", async (req, res) => {
 
 /* Show Products Route */
 
+/* Cart Routes */
+app.get("/fashioncamp/cart", async (req, res) => {});
+
+app.put("/fashioncamp/cart/alter-product-quantity", async (req, res) => {});
+
+app.delete("/fashioncamp/cart/remove-product", async (req, res) => {});
+
 export default app;
