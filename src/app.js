@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import joi from "joi";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import connection from "./database.js";
 
 const signUpSchema = joi.object({
@@ -59,6 +60,44 @@ app.post("/fashioncamp/sign-up", async (req, res) => {
 });
 
 /* Sign In Route */
+app.post("/fashioncamp/sign-in", async (req, res) => {
+    const validation = signInSchema.validate(req.body);
+    if (validation.error) {
+        res.sendStatus(400);
+        return;
+    }
+
+    const { email, password } = req.body;
+    try {
+        const result = await connection.query(
+            `SELECT * FROM users
+            WHERE email=$1`,
+            [email]
+        );
+        const user = result.rows[0];
+        if (user && bcrypt.compareSync(password, user.password)) {
+            const sessionId = await connection.query(
+                `INSERT INTO sessions ("userId")
+                VALUES ($1) RETURNING id`,
+                [user.id]
+            );
+
+            const data = { sessionId };
+            const secretKey = process.env.JWT_SCRET;
+            const configs = { expiresIn: 60 * 60 * 24 * 30 };
+            const token = jwt.sign(data, secretKey, configs);
+
+            res.status(200).send({ name: user.name, token });
+        } else {
+            res.status(404).send(
+                "Usuário não encontrado (email ou senha incorretos)."
+            );
+        }
+    } catch (err) {
+        console.log(err);
+        res.sendStatus(500);
+    }
+});
 
 /* Show Products Route */
 app.get("/products", async (req, res) => {
