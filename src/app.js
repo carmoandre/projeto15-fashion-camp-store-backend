@@ -61,5 +61,26 @@ app.post("/fashioncamp/sign-up", async (req, res) => {
 /* Sign In Route */
 
 /* Show Products Route */
+app.get("/products", async (req, res) => {
+    try{
+        const result = await connection.query(`SELECT * FROM products`);
+        res.send(result.rows);
+    }catch(err){
+        console.log(err);
+        res.sendStatus(400);
+    }
+});
+
+/* Add product to Cart */
+app.post("/product/add/:id", async (req, res) => {
+    try{
+        const {id} = req.params;
+        console.log(id);
+        const result = await connection.query(`SELECT * FROM products WHERE id = $1`,[id]);
+    }catch(err){
+        console.log(err);
+        res.sendStatus(400);
+    }
+});
 
 export default app;
