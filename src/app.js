@@ -101,9 +101,25 @@ app.post("/fashioncamp/sign-in", async (req, res) => {
 
 /* Show Products */
 app.get("/products", async (req, res) => {
+    const category = req.query.category;
+    const search = req.query.search?.replace(" ","");
     try{
-        const result = await connection.query(`SELECT * FROM products`);
+        const result = category ? search ? await connection.query(`SELECT * FROM products WHERE category = $1 AND name ILIKE $2`,[category, '%'+search+'%'])
+            : await connection.query(`SELECT * FROM products WHERE category = $1`,[category])
+        : search ? await connection.query(`SELECT * FROM products WHERE name ILIKE $1`,['%'+search+'%']) 
+        : await connection.query(`SELECT * FROM products`);
         res.send(result.rows);
+    }catch(err){
+        console.log(err);
+        res.sendStatus(400);
+    }
+});
+
+app.get("/categories", async (req, res) => {
+    try{
+        const result = await connection.query(`SELECT category FROM products`);
+        const uniqueResult = await uniq(result.rows);
+        res.send(uniqueResult);
     }catch(err){
         console.log(err);
         res.sendStatus(400);
@@ -144,5 +160,12 @@ app.get("/fashioncamp/cart", async (req, res) => {});
 app.put("/fashioncamp/cart/alter-product-quantity", async (req, res) => {});
 
 app.delete("/fashioncamp/cart/remove-product", async (req, res) => {});
+
+function uniq(a) {
+    const seen = {};
+    return a.filter(function(item) {
+        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
+    });
+}
 
 export default app;
