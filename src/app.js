@@ -112,13 +112,26 @@ app.get("/products", async (req, res) => {
 
 /* Add product to Cart */
 app.post("/product/add/:id", async (req, res) => {
+    const productId = req.params.id;
     const authorization = req.headers['authorization'];
-    const secretKey = process.env.JWT_SECRET;
-    const {id} = req.params;
-    try{
-        const data = jwt.verify(authorization, secretKey);    
+    const token = authorization?.replace('Bearer ', '');
+    const secretKey = process.env.JWT_SCRET;
+    try{    
+        const data = jwt.verify(token, secretKey);  
+        const user = await connection.query(`SELECT * FROM sessions WHERE "userId" = $1 AND token = $2`,[data.user, token]);
         console.log(data);
-        const result = await connection.query(`SELECT`,[]);
+        console.log(user.rows[0]);
+        if(user.rows.length){
+            const cart = await connection.query(`SELECT * FROM carts WHERE "userId" = $1 AND "isActive" = TRUE`, [data.user]);
+            const cartId = cart.rows.length ? cart.rows[0].id : await connection.query(`INSERT INTO carts ("userId", "isActive") VALUES ($1, TRUE) RETURNING id`,[data.user]);
+            const alreadyHasProduct = await connection.query(`SELECT * FROM cartproducts WHERE "cartId" = $1 AND "productId" = $2`,[cartId, productId]);
+            alreadyHasProduct.rows.length ?
+                await connection.query(`UPDATE cartproducts SET quantity = $1 WHERE "cartId" = $2 AND "productId" = $3`,[parseInt(alreadyHasProduct.rows[0].quantity) + 1, cartId, productId]) : 
+                await connection.query(`INSERT INTO cartproducts ("cartId", "productId", quantity) VALUES ($1, $2, 1)`, [cartId, productId]);
+            res.sendStatus(200);
+        }else{
+            res.sendStatus(401);
+        }
     }catch(err){
         console.log(err);
         res.sendStatus(400);
