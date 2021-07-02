@@ -157,6 +157,31 @@ app.post("/product/add/:id", async (req, res) => {
     }
 });
 
+// app.post("/order", async (req, res) => {
+//     const authorization = req.headers['authorization'];
+//     const token = authorization.replace('Bearer ', '');
+//     const secretKey = process.env.JWT_SCRET;
+//     try{
+//         const data = jwt.verify(token, secretKey);  
+//         const user = await connection.query(`SELECT * FROM sessions WHERE "userId" = $1 AND token = $2`,[data.user, token]);
+//         if(user.rows.length){
+//             const cart = await connection.query(`SELECT * FROM carts WHERE "userId" = $1 AND "isActive" = TRUE`, [data.user]);
+//             const cartproducts = await connection.query(`SELECT * FROM cartproducts WHERE "cartId" = $1`,[cart.rows[0].id]);
+//             cartproducts.rows.forEach((product)=>{
+//                 connection
+//             })
+//             const order = await connection.query(`INSERT INTO orders ("userId", "cartId") VALUES ($1, $2)`,[data.user, cart.rows[0].id]);
+//             const setCartFalse = await connection.query(`UPDATE carts SET "isActive" = FALSE WHERE "userId" = $1 AND "isActive" = TRUE`,[data.user]);
+//         }else{
+//             res.sendStatus(401);
+//         }
+//     }catch(err){
+//         console.log(err);
+//         res.sendStatus(400);
+//     }
+// })
+
+
 /* Cart Routes */
 app.get("/fashioncamp/cart", async (req, res) => {});
 
