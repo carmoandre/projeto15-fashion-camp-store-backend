@@ -102,30 +102,42 @@ app.post("/fashioncamp/sign-in", async (req, res) => {
 /* Show Products */
 app.get("/products", async (req, res) => {
     const category = req.query.category;
-    const search = req.query.search?.replace(" ","");
-    try{
-        const result = category ? search ? await connection.query(`SELECT * FROM products WHERE category = $1 AND name ILIKE $2`,[category, '%'+search+'%'])
-            : await connection.query(`SELECT * FROM products WHERE category = $1`,[category])
-        : search ? await connection.query(`SELECT * FROM products WHERE name ILIKE $1`,['%'+search+'%']) 
-        : await connection.query(`SELECT * FROM products`);
+    const search = req.query.search?.replace(" ", "");
+    try {
+        const result = category
+            ? search
+                ? await connection.query(
+                      `SELECT * FROM products WHERE category = $1 AND name ILIKE $2`,
+                      [category, "%" + search + "%"]
+                  )
+                : await connection.query(
+                      `SELECT * FROM products WHERE category = $1`,
+                      [category]
+                  )
+            : search
+            ? await connection.query(
+                  `SELECT * FROM products WHERE name ILIKE $1`,
+                  ["%" + search + "%"]
+              )
+            : await connection.query(`SELECT * FROM products`);
         res.send(result.rows);
-    }catch(err){
+    } catch (err) {
         console.log(err);
         res.sendStatus(400);
     }
 });
 
 app.get("/categories", async (req, res) => {
-    try{
+    try {
         const result = await connection.query(`SELECT category FROM products`);
-        const resultToArray = []
-        result.rows.forEach((c)=>{
+        const resultToArray = [];
+        result.rows.forEach((c) => {
             resultToArray.push(c.category);
         });
         const uniqueArray = [...new Set(resultToArray)];
         console.log(uniqueArray);
         res.send(uniqueArray);
-    }catch(err){
+    } catch (err) {
         console.log(err);
         res.sendStatus(400);
     }
@@ -134,24 +146,43 @@ app.get("/categories", async (req, res) => {
 /* Add product to Cart */
 app.post("/product/add/:id", async (req, res) => {
     const productId = req.params.id;
-    const authorization = req.headers['authorization'];
-    const token = authorization.replace('Bearer ', '');
+    const authorization = req.headers["authorization"];
+    const token = authorization.replace("Bearer ", "");
     const secretKey = process.env.JWT_SCRET;
-    try{
-        const data = jwt.verify(token, secretKey);  
-        const user = await connection.query(`SELECT * FROM sessions WHERE "userId" = $1 AND token = $2`,[data.user, token]);
-        if(user.rows.length){
-            const cart = await connection.query(`SELECT * FROM carts WHERE "userId" = $1 AND "isActive" = TRUE`, [data.user]);
-            const cartId = cart.rows.length ? cart.rows[0].id : (await connection.query(`INSERT INTO carts ("userId", "isActive") VALUES ($1, TRUE) RETURNING id`,[data.user])).rows[0].id;
-            const alreadyHasProduct = await connection.query(`SELECT * FROM cartproducts WHERE "cartId" = $1 AND "productId" = $2`,[cartId, productId]);
-            if(!alreadyHasProduct.rows.length){
-                await connection.query(`INSERT INTO cartproducts ("cartId", "productId", quantity) VALUES ($1, $2, '1')`, [cartId, productId]);
+    try {
+        const data = jwt.verify(token, secretKey);
+        const user = await connection.query(
+            `SELECT * FROM sessions WHERE "userId" = $1 AND token = $2`,
+            [data.user, token]
+        );
+        if (user.rows.length) {
+            const cart = await connection.query(
+                `SELECT * FROM carts WHERE "userId" = $1 AND "isActive" = TRUE`,
+                [data.user]
+            );
+            const cartId = cart.rows.length
+                ? cart.rows[0].id
+                : (
+                      await connection.query(
+                          `INSERT INTO carts ("userId", "isActive") VALUES ($1, TRUE) RETURNING id`,
+                          [data.user]
+                      )
+                  ).rows[0].id;
+            const alreadyHasProduct = await connection.query(
+                `SELECT * FROM cartproducts WHERE "cartId" = $1 AND "productId" = $2`,
+                [cartId, productId]
+            );
+            if (!alreadyHasProduct.rows.length) {
+                await connection.query(
+                    `INSERT INTO cartproducts ("cartId", "productId", quantity) VALUES ($1, $2, '1')`,
+                    [cartId, productId]
+                );
             }
             res.sendStatus(200);
-        }else{
+        } else {
             res.sendStatus(401);
         }
-    }catch(err){
+    } catch (err) {
         console.log(err);
         res.sendStatus(400);
     }
@@ -175,7 +206,7 @@ app.get("/fashioncamp/cart/", async (req, res) => {
 
     try {
         const activeCart = await connection.query(
-            `SELECT * FROM cart WHERE "userId"=$1 AND "isActive"=TRUE`,
+            `SELECT * FROM carts WHERE "userId"=$1 AND "isActive"=TRUE`,
             [userId]
         );
         const cart = activeCart.rows.length
@@ -189,11 +220,11 @@ app.get("/fashioncamp/cart/", async (req, res) => {
               ).rows[0];
         const cartProducts = await connection.query(
             `SELECT products.id, products.name, 
-            products.value, prodcuts.quantity AS stock, 
-            cartproducts.quantity, product.image
+            products.value, products.quantity AS stock, 
+            cartproducts.quantity, products.image
             FROM cartproducts JOIN products
             ON cartproducts."productId"=products.id 
-            WHERE "cartId"=$1 AND "isActive"=TRUE`,
+            WHERE "cartId"=$1`,
             [cart.id]
         );
         res.status(200).send({
