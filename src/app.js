@@ -118,8 +118,13 @@ app.get("/products", async (req, res) => {
 app.get("/categories", async (req, res) => {
     try{
         const result = await connection.query(`SELECT category FROM products`);
-        const uniqueResult = await uniq(result.rows);
-        res.send(uniqueResult);
+        const resultToArray = []
+        result.rows.forEach((c)=>{
+            resultToArray.push(c.category);
+        });
+        const uniqueArray = [...new Set(resultToArray)];
+        console.log(uniqueArray);
+        res.send(uniqueArray);
     }catch(err){
         console.log(err);
         res.sendStatus(400);
@@ -130,20 +135,18 @@ app.get("/categories", async (req, res) => {
 app.post("/product/add/:id", async (req, res) => {
     const productId = req.params.id;
     const authorization = req.headers['authorization'];
-    const token = authorization?.replace('Bearer ', '');
+    const token = authorization.replace('Bearer ', '');
     const secretKey = process.env.JWT_SCRET;
-    try{    
+    try{
         const data = jwt.verify(token, secretKey);  
         const user = await connection.query(`SELECT * FROM sessions WHERE "userId" = $1 AND token = $2`,[data.user, token]);
-        console.log(data);
-        console.log(user.rows[0]);
         if(user.rows.length){
             const cart = await connection.query(`SELECT * FROM carts WHERE "userId" = $1 AND "isActive" = TRUE`, [data.user]);
-            const cartId = cart.rows.length ? cart.rows[0].id : await connection.query(`INSERT INTO carts ("userId", "isActive") VALUES ($1, TRUE) RETURNING id`,[data.user]);
+            const cartId = cart.rows.length ? cart.rows[0].id : (await connection.query(`INSERT INTO carts ("userId", "isActive") VALUES ($1, TRUE) RETURNING id`,[data.user])).rows[0].id;
             const alreadyHasProduct = await connection.query(`SELECT * FROM cartproducts WHERE "cartId" = $1 AND "productId" = $2`,[cartId, productId]);
-            alreadyHasProduct.rows.length ?
-                await connection.query(`UPDATE cartproducts SET quantity = $1 WHERE "cartId" = $2 AND "productId" = $3`,[parseInt(alreadyHasProduct.rows[0].quantity) + 1, cartId, productId]) : 
-                await connection.query(`INSERT INTO cartproducts ("cartId", "productId", quantity) VALUES ($1, $2, 1)`, [cartId, productId]);
+            if(!alreadyHasProduct.rows.length){
+                await connection.query(`INSERT INTO cartproducts ("cartId", "productId", quantity) VALUES ($1, $2, '1')`, [cartId, productId]);
+            }
             res.sendStatus(200);
         }else{
             res.sendStatus(401);
@@ -160,12 +163,5 @@ app.get("/fashioncamp/cart", async (req, res) => {});
 app.put("/fashioncamp/cart/alter-product-quantity", async (req, res) => {});
 
 app.delete("/fashioncamp/cart/remove-product", async (req, res) => {});
-
-function uniq(a) {
-    const seen = {};
-    return a.filter(function(item) {
-        return seen.hasOwnProperty(item) ? false : (seen[item] = true);
-    });
-}
 
 export default app;
