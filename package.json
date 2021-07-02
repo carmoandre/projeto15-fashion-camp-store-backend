@@ -5,7 +5,9 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "echo \"Error: no test specified\" && exit 1",
+        "server": "JWT_SCRET=secreto npx nodemon src/server.js",
+        "jest": "JWT_SCRET=secreto NODE_ENV=test npx jest -i"
     },
     "keywords": [],
     "author": "",
